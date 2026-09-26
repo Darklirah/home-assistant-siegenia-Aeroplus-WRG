@@ -5,6 +5,35 @@ Vibe coded, based on the awesome work for iobroker here: https://github.com/Apol
 
 Tested with 4 Aeroplus WRG modules. Other siegenia devices might work, untested.
 
+## About this fork
+
+Fork of [rikbootsman/home-assistant-siegenia-Aeroplus-WRG](https://github.com/rikbootsman/home-assistant-siegenia-Aeroplus-WRG),
+extended for the **AEROVITAL ambience** (device type 5, tested with software
+1.7.7 / hardware 1.34). Aeroplus behaviour is unchanged — every difference is
+guarded by what the device actually reports.
+
+What is fixed here:
+
+- **Fan and airflow now belong to the device.** `fan.py` and `number.py` did not
+  declare `device_info`, so both entities ended up with `device_id: null` and were
+  missing from the device page. On an AEROVITAL those are the only two controls,
+  which made the integration look read-only.
+- **On/off works on devices without a power parameter.** An AEROVITAL has no
+  `power` / `on` / `enabled` — it runs whenever `fanpower > 0`. `turn_on` used to
+  send only those three keys; the device answers `ok` and does nothing. `turn_off`
+  worked by accident via `fanpower: 0`, but auto mode ramped the fan straight back
+  up. Both now check whether the device reports a power parameter and fall back to
+  `fanpower` (plus `automode: false`) when it does not.
+- **The raw state sensor no longer floods the log.** It put the whole device dump
+  into its state, which Home Assistant caps at 255 characters — an ERROR on every
+  update, about 8600 a day. The state is now the number of reported parameters and
+  the JSON moved to a `raw` attribute.
+
+Notes on the AEROVITAL: it reports no CO₂ ppm value (only the `airquality` index),
+so that sensor stays absent. Every request needs an `id` field or the device
+answers `{"id":-1,"status":"incorrect_format"}`. A non-admin account is enough to
+write parameters, and unknown keys are accepted silently.
+
 ## Features
 
 ### Core Features
