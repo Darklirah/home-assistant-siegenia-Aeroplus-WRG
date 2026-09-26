@@ -142,13 +142,27 @@ class SiegeniaRawStateSensor(CoordinatorEntity, SensorEntity):
             self.coordinator.data, self._entry.entry_id, self._entry.data.get("host")
         )
 
-    @property
-    def native_value(self) -> str:
-        from json import dumps
+    def _combined(self) -> Dict[str, Any]:
         data = self.coordinator.data or {}
-        combined = {}
+        combined: Dict[str, Any] = {}
         for part in ("state", "params", "info"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 combined.update(d)
-        return dumps(combined, ensure_ascii=False)
+        return combined
+
+    @property
+    def native_value(self) -> int | None:
+        """Number of reported parameters -- the payload itself is an attribute.
+
+        A state is capped at 255 characters and the device dump is around a
+        kilobyte, so returning the JSON here made Home Assistant discard the
+        state and log an error on every single coordinator update.
+        """
+        return len(self._combined()) or None
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        from json import dumps
+
+        return {"raw": dumps(self._combined(), ensure_ascii=False)}
