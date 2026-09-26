@@ -1,7 +1,7 @@
 {
   "domain": "siegenia",
   "name": "Siegenia (alpha)",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "documentation": "https://github.com/rikbootsman/home-assistant-siegenia-Aeroplus-WRG",
   "issue_tracker": "https://github.com/rikbootsman/home-assistant-siegenia-Aeroplus-WRG/issues",
   "requirements": [],

@@ -10,6 +10,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.config_entries import ConfigEntry
 
 from .const import DOMAIN, DATA_CLIENT, DATA_COORDINATOR
+from .device import build_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,6 +35,13 @@ class SiegeniaFanEntity(CoordinatorEntity, FanEntity):
         system_name = self._get_system_name()
         self._attr_name = f"{system_name} Fan" if system_name else "Siegenia Fan"
         self._attr_unique_id = f"{entry.entry_id}-fan"
+        self._last_pct: int | None = None
+
+    @property
+    def device_info(self):
+        return build_device_info(
+            self.coordinator.data, self._entry.entry_id, self._entry.data.get("host")
+        )
         
     def _get_system_name(self) -> str | None:
         """Get the system name from device info."""
@@ -107,7 +115,10 @@ class SiegeniaFanEntity(CoordinatorEntity, FanEntity):
             p = int(d.get("fanpower", 0) or 0)  # Siegenia reports percent 0..100
         except Exception:
             p = 0
-        return max(0, min(100, p))
+        p = max(0, min(100, p))
+        if p > 0:
+            self._last_pct = p
+        return p
 
     @property
     def supported_features(self) -> int:
@@ -148,13 +159,29 @@ class SiegeniaFanEntity(CoordinatorEntity, FanEntity):
         await self._client.set_device_params(params)
         await self.coordinator.async_request_refresh()
 
+    def _has_power_param(self) -> bool:
+        """Aeroplus devices expose power/on/enabled -- AEROVITAL (type 5) does not."""
+        d = self._combined()
+        return any(k in d for k in ("power", "on", "enabled"))
+
     async def async_turn_on(self, **kwargs: Any) -> None:
-        if "percentage" in kwargs:
+        if kwargs.get("percentage") is not None:
             await self.async_set_percentage(kwargs["percentage"])
             return
-        await self._client.set_device_params({"power": True, "on": True, "enabled": True})
+        if self._has_power_param():
+            await self._client.set_device_params({"power": True, "on": True, "enabled": True})
+        else:
+            # No on/off parameter: the unit runs whenever fanpower > 0.
+            await self._client.set_device_params(
+                {"automode": False, "fanpower": self._last_pct or 50}
+            )
         await self.coordinator.async_request_refresh()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await self._client.set_device_params({"power": False, "on": False, "enabled": False, "fanpower": 0})
+        if self._has_power_param():
+            params = {"power": False, "on": False, "enabled": False, "fanpower": 0}
+        else:
+            # Auto mode would ramp the fan straight back up, so switch it off too.
+            params = {"automode": False, "fanpower": 0}
+        await self._client.set_device_params(params)
         await self.coordinator.async_request_refresh()
