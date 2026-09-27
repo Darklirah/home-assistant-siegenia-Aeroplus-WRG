@@ -17,5 +17,17 @@
       "cannot_connect": "Verbindung fehlgeschlagen. Überprüfen Sie IP/Port/Anmeldedaten."
     },
     "abort": {}
+  },
+  "entity": {
+    "select": {
+      "fanmode": {
+        "state": {
+          "in": "Zuluft",
+          "out": "Abluft",
+          "in_out": "Zu- und Abluft",
+          "in_out_wrg": "Zu- und Abluft mit WRG"
+        }
+      }
+    }
   }
 }

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -11,23 +15,31 @@ from homeassistant.config_entries import ConfigEntry
 from .const import DOMAIN, DATA_COORDINATOR
 from .device import build_device_info
 
-UNIT_MAP = {
-    "airbase.humidity.indoor": "%",
-    "airbase.humidity.outdoor": "%",
-    "airbase.temperature.indoor": "°C",
-    "airbase.temperature.outdoor": "°C",
-    "airquality.co2content": "ppm",
-    "humidity.indoor": "%",
-    "humidity.outdoor": "%",
-    "temperature.indoor": "°C",
-    "temperature.outdoor": "°C",
-    "co2_value": "ppm",
-    "fanmode": None,
-    "maxfanpower": None,
-    "systemname": None,
-    "connection": None,
-    "airquality": None,
-    "maxfanpowermanual": None,
+# key -> (unit, device_class, state_class). A device class gets the reading the
+# right icon and formatting; the measurement state class is what makes Home
+# Assistant keep long term statistics for it.
+TEMPERATURE = ("°C", SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT)
+HUMIDITY = ("%", SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT)
+CO2 = ("ppm", SensorDeviceClass.CO2, SensorStateClass.MEASUREMENT)
+PLAIN = (None, None, None)
+
+SENSOR_META: dict[str, tuple[str | None, SensorDeviceClass | None, SensorStateClass | None]] = {
+    "airbase.humidity.indoor": HUMIDITY,
+    "airbase.humidity.outdoor": HUMIDITY,
+    "airbase.temperature.indoor": TEMPERATURE,
+    "airbase.temperature.outdoor": TEMPERATURE,
+    "airquality.co2content": CO2,
+    "humidity.indoor": HUMIDITY,
+    "humidity.outdoor": HUMIDITY,
+    "temperature.indoor": TEMPERATURE,
+    "temperature.outdoor": TEMPERATURE,
+    "co2_value": CO2,
+    "fanmode": PLAIN,
+    "maxfanpower": ("m³/h", None, None),
+    "systemname": PLAIN,
+    "connection": PLAIN,
+    "airquality": (None, None, SensorStateClass.MEASUREMENT),
+    "maxfanpowermanual": PLAIN,
 }
 
 def _flatten(data: Dict[str, Any], parent: str = "", out: Dict[str, Any] | None = None) -> Dict[str, Any]:
@@ -54,18 +66,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     flat.update(combined)
 
     entities: list[SensorEntity] = []
-    for key, unit in UNIT_MAP.items():
+    for key, meta in SENSOR_META.items():
         if key in flat:
-            entities.append(SiegeniaKeySensor(coordinator, entry, key, unit))
+            entities.append(SiegeniaKeySensor(coordinator, entry, key, meta))
+
+    if isinstance(combined.get("warnings"), list):
+        entities.append(SiegeniaWarningsSensor(coordinator, entry))
 
     entities.append(SiegeniaRawStateSensor(coordinator, entry))
     async_add_entities(entities)
 
 class SiegeniaKeySensor(CoordinatorEntity, SensorEntity):
-    def __init__(self, coordinator, entry: ConfigEntry, key: str, unit: str | None) -> None:
+    def __init__(
+        self,
+        coordinator,
+        entry: ConfigEntry,
+        key: str,
+        meta: tuple[str | None, SensorDeviceClass | None, SensorStateClass | None],
+    ) -> None:
         super().__init__(coordinator)
         self._entry = entry
         self._key = key
+        unit, device_class, state_class = meta
+        if device_class:
+            self._attr_device_class = device_class
+        if state_class:
+            self._attr_state_class = state_class
         # Get system name from device info
         system_name = self._get_system_name()
         name = key.replace("_", " ").replace(".", " ").title()
@@ -166,3 +192,51 @@ class SiegeniaRawStateSensor(CoordinatorEntity, SensorEntity):
         from json import dumps
 
         return {"raw": dumps(self._combined(), ensure_ascii=False)}
+
+
+class SiegeniaWarningsSensor(CoordinatorEntity, SensorEntity):
+    """Number of active device warnings, with the raw list as an attribute."""
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_icon = "mdi:alert-outline"
+    _attr_state_class = SensorStateClass.MEASUREMENT
+
+    def __init__(self, coordinator, entry: ConfigEntry) -> None:
+        super().__init__(coordinator)
+        self._entry = entry
+        system_name = self._get_system_name()
+        self._attr_name = f"{system_name} Warnings" if system_name else "Siegenia Warnings"
+        self._attr_unique_id = f"{entry.entry_id}-warnings"
+
+    def _get_system_name(self) -> str | None:
+        """Get the system name from device info."""
+        data = self.coordinator.data or {}
+        for part in ("state", "params", "info"):
+            d = data.get(part) or {}
+            if isinstance(d, dict):
+                system_name = d.get("systemname") or d.get("device_name")
+                if system_name:
+                    return system_name
+        return None
+
+    @property
+    def device_info(self):
+        return build_device_info(
+            self.coordinator.data, self._entry.entry_id, self._entry.data.get("host")
+        )
+
+    def _warnings(self) -> list:
+        data = self.coordinator.data or {}
+        for part in ("state", "params", "info"):
+            d = data.get(part) or {}
+            if isinstance(d, dict) and isinstance(d.get("warnings"), list):
+                return d["warnings"]
+        return []
+
+    @property
+    def native_value(self) -> int:
+        return len(self._warnings())
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        return {"warnings": self._warnings()}

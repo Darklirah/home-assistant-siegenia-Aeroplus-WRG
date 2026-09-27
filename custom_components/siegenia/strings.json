@@ -17,5 +17,17 @@
       "cannot_connect": "Failed to connect. Check IP/port/credentials."
     },
     "abort": {}
+  },
+  "entity": {
+    "select": {
+      "fanmode": {
+        "state": {
+          "in": "Supply air",
+          "out": "Extract air",
+          "in_out": "Supply and extract air",
+          "in_out_wrg": "Supply and extract air with heat recovery"
+        }
+      }
+    }
   }
 }

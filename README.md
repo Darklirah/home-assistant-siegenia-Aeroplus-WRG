@@ -36,6 +36,30 @@ What is fixed here:
 
 Added here:
 
+- **The settings the SIEGENIA Comfort app offers, as entities.** Everything below
+  was verified against the app side by side with the raw device parameters:
+
+  | App | Entity | Parameter |
+  |---|---|---|
+  | Betriebsart (operating mode) | `select` | `fanmode` — `IN` / `OUT` / `IN_OUT` / `IN_OUT_WRG` |
+  | Sensorempfindlichkeit | `number` (%) | `automode_co2sensity` |
+  | Maximale Gebläseleistung (auto mode) | `number` (m³/h) | `automode_maxairflow` |
+  | Silent Mode | `switch` | `ecomode` |
+  | Maximale Gebläseleistung (silent mode) | `number` (m³/h) | `ecomode_maxairflow` |
+  | Timer Silent Mode | `switch` | `ecotimer` |
+  | Einschaltzeit / Ausschaltzeit | `time` | `ecomode_start` / `ecomode_end` |
+  | Warnungen | `sensor` | `warnings` |
+
+  Two encodings worth knowing, both confirmed against the app: the two airflow
+  caps are **percentages of `maxfanpower`**, not m³/h (the app showed 43 m³/h for
+  `ecomode_maxairflow: 71` with `maxfanpower: 60`), and the silent mode times count
+  **quarter hours since midnight** (`88` is 22:00, `24` is 6:00). Every one of
+  these entities is only created when the device reports the parameter.
+
+- **Climate readings now carry a device class and `state_class: measurement`**, so
+  temperature and humidity get the right icon and formatting and Home Assistant
+  keeps long term statistics for them.
+
 - **A `Sync Clock` button.** The devices keep their own clock and the eco timer
   runs on it. The unit tested here was observed five minutes behind Home Assistant
   at one point and back in step an hour later, so it may or may not correct itself
