@@ -220,6 +220,10 @@ class SiegeniaClient:
     async def get_device_params(self) -> dict:
         return await self._send("getDeviceParams")
 
+    async def get_device_details(self) -> dict:
+        """Operating hours, remaining filter life, network details."""
+        return await self._send("getDeviceDetails")
+
     async def set_device_params(self, params: dict) -> dict:
         return await self._send("setDeviceParams", params=params)
 

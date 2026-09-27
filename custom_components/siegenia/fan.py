@@ -46,7 +46,7 @@ class SiegeniaFanEntity(CoordinatorEntity, FanEntity):
     def _get_system_name(self) -> str | None:
         """Get the system name from device info."""
         data = self.coordinator.data or {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 system_name = d.get("systemname") or d.get("device_name")
@@ -57,7 +57,7 @@ class SiegeniaFanEntity(CoordinatorEntity, FanEntity):
     def _combined(self) -> dict:
         data = self.coordinator.data or {}
         merged: dict[str, Any] = {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             v = data.get(part) or {}
             if isinstance(v, dict):
                 merged.update(v)

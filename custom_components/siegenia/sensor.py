@@ -40,6 +40,9 @@ SENSOR_META: dict[str, tuple[str | None, SensorDeviceClass | None, SensorStateCl
     "connection": PLAIN,
     "airquality": (None, None, SensorStateClass.MEASUREMENT),
     "maxfanpowermanual": PLAIN,
+    # From getDeviceDetails rather than getDeviceParams.
+    "operatinghours": ("h", SensorDeviceClass.DURATION, SensorStateClass.TOTAL_INCREASING),
+    "airfilterremainingterm": ("d", SensorDeviceClass.DURATION, SensorStateClass.MEASUREMENT),
 }
 
 def _flatten(data: Dict[str, Any], parent: str = "", out: Dict[str, Any] | None = None) -> Dict[str, Any]:
@@ -58,7 +61,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     coordinator = data[DATA_COORDINATOR]
 
     combined = {}
-    for part in ("state", "params", "info"):
+    for part in ("state", "params", "info", "details"):
         d = (coordinator.data or {}).get(part) or {}
         if isinstance(d, dict):
             combined.update(d)
@@ -110,7 +113,7 @@ class SiegeniaKeySensor(CoordinatorEntity, SensorEntity):
     def _get_system_name(self) -> str | None:
         """Get the system name from device info."""
         data = self.coordinator.data or {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 system_name = d.get("systemname") or d.get("device_name")
@@ -122,7 +125,7 @@ class SiegeniaKeySensor(CoordinatorEntity, SensorEntity):
     def native_value(self) -> Any:
         data = self.coordinator.data or {}
         combined = {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 combined.update(d)
@@ -154,7 +157,7 @@ class SiegeniaRawStateSensor(CoordinatorEntity, SensorEntity):
     def _get_system_name(self) -> str | None:
         """Get the system name from device info."""
         data = self.coordinator.data or {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 system_name = d.get("systemname") or d.get("device_name")
@@ -171,7 +174,7 @@ class SiegeniaRawStateSensor(CoordinatorEntity, SensorEntity):
     def _combined(self) -> Dict[str, Any]:
         data = self.coordinator.data or {}
         combined: Dict[str, Any] = {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 combined.update(d)
@@ -211,7 +214,7 @@ class SiegeniaWarningsSensor(CoordinatorEntity, SensorEntity):
     def _get_system_name(self) -> str | None:
         """Get the system name from device info."""
         data = self.coordinator.data or {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 system_name = d.get("systemname") or d.get("device_name")
@@ -227,7 +230,7 @@ class SiegeniaWarningsSensor(CoordinatorEntity, SensorEntity):
 
     def _warnings(self) -> list:
         data = self.coordinator.data or {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict) and isinstance(d.get("warnings"), list):
                 return d["warnings"]

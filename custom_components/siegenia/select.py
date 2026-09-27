@@ -21,7 +21,7 @@ FANMODES = ("IN", "OUT", "IN_OUT", "IN_OUT_WRG")
 def _combined(data: dict | None) -> dict:
     data = data or {}
     merged: dict = {}
-    for key in ("state", "params", "info"):
+    for key in ("state", "params", "info", "details"):
         v = data.get(key) or {}
         if isinstance(v, dict):
             merged.update(v)
@@ -55,7 +55,7 @@ class SiegeniaFanModeSelect(CoordinatorEntity, SelectEntity):
     def _get_system_name(self) -> str | None:
         """Get the system name from device info."""
         data = self.coordinator.data or {}
-        for part in ("state", "params", "info"):
+        for part in ("state", "params", "info", "details"):
             d = data.get(part) or {}
             if isinstance(d, dict):
                 system_name = d.get("systemname") or d.get("device_name")

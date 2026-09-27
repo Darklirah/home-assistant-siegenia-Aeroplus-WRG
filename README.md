@@ -56,6 +56,14 @@ Added here:
   **quarter hours since midnight** (`88` is 22:00, `24` is 6:00). Every one of
   these entities is only created when the device reports the parameter.
 
+- **Operating hours and remaining filter life.** The app shows both under
+  *Weitere Einstellungen*, but they are not in `getDeviceParams` — they come from
+  **`getDeviceDetails`**, a command the integration never called. That response is
+  now part of every coordinator update and yields two sensors:
+  `operatinghours` (h) and `airfilterremainingterm` (days until the filter is
+  due). It also carries `ip`, `mac` and the firmware versions, which the raw state
+  sensor now includes.
+
 - **Climate readings now carry a device class and `state_class: measurement`**, so
   temperature and humidity get the right icon and formatting and Home Assistant
   keeps long term statistics for them.

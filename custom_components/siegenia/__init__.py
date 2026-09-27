@@ -48,7 +48,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             state = await client.get_device_state()
             params = await client.get_device_params()
             info = await client.get_device()
-            data = {"state": state, "params": params, "info": info}
+            details = await client.get_device_details()
+            data = {"state": state, "params": params, "info": info, "details": details}
         except Exception as exc:
             # reconnect + retry once
             _LOGGER.debug("Update error, attempting reconnect: %s", exc)
@@ -56,7 +57,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             state = await client.get_device_state()
             params = await client.get_device_params()
             info = await client.get_device()
-            data = {"state": state, "params": params, "info": info}
+            details = await client.get_device_details()
+            data = {"state": state, "params": params, "info": info, "details": details}
         return data
 
     coordinator = DataUpdateCoordinator(
