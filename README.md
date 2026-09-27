@@ -34,6 +34,15 @@ What is fixed here:
   update, about 8600 a day. The state is now the number of reported parameters and
   the JSON moved to a `raw` attribute.
 
+Added here:
+
+- **A `Sync Clock` button.** The devices keep their own clock, the eco timer runs
+  on it, and it drifts — about five minutes in a day on the unit tested here. The
+  button writes Home Assistant's local time to the device and exposes the device's
+  own clock as a `device_clock` attribute, so the drift is visible without pressing
+  anything. It only appears when the device actually reports a `clock`. Pair it
+  with a nightly automation and the eco window stays where you put it.
+
 Notes on the AEROVITAL: it reports no CO₂ ppm value (only the `airquality` index),
 so that sensor stays absent. Every request needs an `id` field or the device
 answers `{"id":-1,"status":"incorrect_format"}`. A non-admin account is enough to
