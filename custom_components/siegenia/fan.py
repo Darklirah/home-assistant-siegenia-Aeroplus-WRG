@@ -164,9 +164,17 @@ class SiegeniaFanEntity(CoordinatorEntity, FanEntity):
         d = self._combined()
         return any(k in d for k in ("power", "on", "enabled"))
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        if kwargs.get("percentage") is not None:
-            await self.async_set_percentage(kwargs["percentage"])
+    async def async_turn_on(
+        self,
+        percentage: int | None = None,
+        preset_mode: str | None = None,
+        **kwargs: Any,
+    ) -> None:
+        # Home Assistant passes percentage and preset_mode positionally
+        # (fan/__init__.py: async_turn_on(percentage, preset_mode, **kwargs)),
+        # so they have to be named parameters or the call raises a TypeError.
+        if percentage is not None:
+            await self.async_set_percentage(percentage)
             return
         if self._has_power_param():
             await self._client.set_device_params({"power": True, "on": True, "enabled": True})

@@ -18,11 +18,16 @@ What is fixed here:
   declare `device_info`, so both entities ended up with `device_id: null` and were
   missing from the device page. On an AEROVITAL those are the only two controls,
   which made the integration look read-only.
+- **`fan.turn_on` no longer raises a TypeError.** This one hit every device:
+  Home Assistant calls `async_turn_on(percentage, preset_mode, **kwargs)` with
+  positional arguments, while the method was declared as `(self, **kwargs)`. The
+  service call died with `TypeError: takes 1 positional argument but 3 were given`
+  before anything was sent to the device. Both are named parameters now.
 - **On/off works on devices without a power parameter.** An AEROVITAL has no
-  `power` / `on` / `enabled` — it runs whenever `fanpower > 0`. `turn_on` used to
-  send only those three keys; the device answers `ok` and does nothing. `turn_off`
-  worked by accident via `fanpower: 0`, but auto mode ramped the fan straight back
-  up. Both now check whether the device reports a power parameter and fall back to
+  `power` / `on` / `enabled` — it runs whenever `fanpower > 0`. `turn_on` sent only
+  those three keys, which the device accepts and ignores. `turn_off` worked by
+  accident via `fanpower: 0`, but auto mode ramped the fan straight back up. Both
+  now check whether the device reports a power parameter and fall back to
   `fanpower` (plus `automode: false`) when it does not.
 - **The raw state sensor no longer floods the log.** It put the whole device dump
   into its state, which Home Assistant caps at 255 characters — an ERROR on every
