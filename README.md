@@ -36,12 +36,13 @@ What is fixed here:
 
 Added here:
 
-- **A `Sync Clock` button.** The devices keep their own clock, the eco timer runs
-  on it, and it drifts — about five minutes in a day on the unit tested here. The
-  button writes Home Assistant's local time to the device and exposes the device's
-  own clock as a `device_clock` attribute, so the drift is visible without pressing
-  anything. It only appears when the device actually reports a `clock`. Pair it
-  with a nightly automation and the eco window stays where you put it.
+- **A `Sync Clock` button.** The devices keep their own clock and the eco timer
+  runs on it. The unit tested here was observed five minutes behind Home Assistant
+  at one point and back in step an hour later, so it may or may not correct itself
+  — there was simply no way to see or fix the offset from Home Assistant. The
+  button writes local time to the device and exposes the device's own clock as a
+  `device_clock` attribute, so the offset is visible without pressing anything. It
+  only appears when the device actually reports a `clock`.
 
 Notes on the AEROVITAL: it reports no CO₂ ppm value (only the `airquality` index),
 so that sensor stays absent. Every request needs an `id` field or the device
