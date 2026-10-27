@@ -8,7 +8,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.config_entries import ConfigEntry
 
 from .const import DOMAIN, DATA_CLIENT, DATA_COORDINATOR
-from .device import build_device_info
+from .device import build_device_info, device_active, device_active_params
 
 def _combined(data: dict | None) -> dict:
     data = data or {}
@@ -23,6 +23,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     coord = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
     params = _combined(coord.data)
     entities: list[SwitchEntity] = [SiegeniaAutoModeSwitch(hass, entry)]
+    # Master on/off of the whole unit (devicestate.deviceactive).
+    if device_active(coord.data) is not None:
+        entities.append(SiegeniaPowerSwitch(hass, entry))
     # Silent mode and its timer only exist on devices that report them.
     if isinstance(params.get("ecomode"), bool):
         entities.append(
@@ -86,6 +89,32 @@ class SiegeniaParamSwitch(CoordinatorEntity, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self._client.set_device_params({self._param: False})
+        await self.coordinator.async_request_refresh()
+
+
+class SiegeniaPowerSwitch(SiegeniaParamSwitch):
+    """Switches the whole unit on or off, like the power button in the SIEGENIA app.
+
+    It is the device's main entity: no name of its own, so Home Assistant shows it
+    under the device name and lists it first on the device page.
+    """
+
+    _attr_has_entity_name = True
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        super().__init__(hass, entry, "deviceactive", "Power", "mdi:power")
+        self._attr_name = None
+
+    @property
+    def is_on(self) -> bool:
+        return bool(device_active(self.coordinator.data))
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        await self._client.set_device_params(device_active_params(True))
+        await self.coordinator.async_request_refresh()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        await self._client.set_device_params(device_active_params(False))
         await self.coordinator.async_request_refresh()
 
 class SiegeniaAutoModeSwitch(CoordinatorEntity, SwitchEntity):

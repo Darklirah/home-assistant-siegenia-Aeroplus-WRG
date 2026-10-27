@@ -33,9 +33,23 @@ What is fixed here:
   into its state, which Home Assistant caps at 255 characters — an ERROR on every
   update, about 8600 a day. The state is now the number of reported parameters and
   the JSON moved to a `raw` attribute.
+- **The fan entity name no longer repeats the device name.** The fan uses
+  `has_entity_name`, so Home Assistant already prefixes the device name; the system
+  name in the entity name made it `aeromat.x aeromat.x Fan`. It is `aeromat.x Fan` now.
 
 Added here:
 
+- **A `Power` switch for the whole unit.** The Siegenia API has one master flag,
+  `devicestate.deviceactive`, written as
+  `setDeviceParams {"devicestate": {"deviceactive": false}}` (the
+  [ioBroker adapter](https://github.com/Apollon77/ioBroker.siegenia) exposes it as
+  `params.active`). Nothing sent it, so a unit such as the AEROMAT VT could be
+  throttled to `fanpower: 0` but not switched off. The switch is the device's main
+  entity — shown under the device name, listed first on the device page — and is
+  only created when the device reports `deviceactive` (in `getDeviceState` or
+  `getDeviceParams`). On those devices `fan.turn_on` / `fan.turn_off` use the same
+  flag and keep fan power and mode; other devices behave as before. Tested on an
+  AEROMAT VT (WRG).
 - **The settings the SIEGENIA Comfort app offers, as entities.** Everything below
   was verified against the app side by side with the raw device parameters:
 
